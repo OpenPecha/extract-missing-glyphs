@@ -8,26 +8,20 @@ def write_file(file_path, content):
     with codecs.open(file_path, 'w', encoding='utf-8') as file:
         file.write(content)
 
-def convert_to_unicode(text):
-    return [ord(char) for line in text.splitlines() for char in line.strip()]
-
-def convert_from_unicode(unicode_list):
-    return ''.join([chr(code) for code in unicode_list])
-
-def find_common_characters(text1, text2):
-    unicode_text1 = convert_to_unicode(text1)
-    unicode_text2 = convert_to_unicode(text2)
+def find_common_characters(text1, text2, output_file_path):
+    unicode_text1 = [ord(char) for line in text1.splitlines() for char in line.strip()]
+    unicode_text2 = [ord(char) for line in text2.splitlines() for char in line.strip()]
 
     common_unicode = set(unicode_text2).intersection(set(unicode_text1))
+    common_characters = ''.join([chr(code) for code in common_unicode])
 
-    return convert_from_unicode(common_unicode)
+    with codecs.open(output_file_path, 'w', encoding='utf-8') as output_file:
+        output_file.write(common_characters)
 
 def main():
-    txt1_content = read_file('../../data/derge_found_glyphs.txt')
-    txt2_content = read_file('../../data/subjoined_glyphs.txt')
-
-    common_characters = find_common_characters(txt1_content, txt2_content)
-    write_file('common_characters.txt', common_characters)
+    found_glyphs = read_file('../../data/derge_found_glyphs.txt')
+    subjoined_glyphs = read_file('../../data/subjoined_glyphs.txt')
+    find_common_characters(found_glyphs, subjoined_glyphs, '../../data/common_glyphs.txt')
 
 if __name__ == "__main__":
     main()
