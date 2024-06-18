@@ -2,13 +2,16 @@ import yaml
 import shutil
 from pathlib import Path
 
+
 def read_file(filename):
     with open(filename, 'r', encoding='utf-8') as file:
         return file.read()
 
+
 def read_lines(filename):
     with open(filename, 'r', encoding='utf-8') as file:
         return file.readlines()
+
 
 def find_spans(text, characters):
     spans = {}
@@ -19,6 +22,7 @@ def find_spans(text, characters):
             spans[char].append(index)
             index = text.find(char, index + 1)
     return spans
+
 
 def check_spans_against_yaml(spans, yaml_data):
     references = {}
@@ -32,9 +36,11 @@ def check_spans_against_yaml(spans, yaml_data):
                         references[annotation['reference']] = char
     return references
 
+
 def load_yaml(filename):
     with open(filename, 'r') as file:
         return yaml.safe_load(file)
+
 
 def copy_images_based_on_references(image_dir, references, output_dir):
     image_dir = Path(image_dir)
@@ -49,22 +55,24 @@ def copy_images_based_on_references(image_dir, references, output_dir):
             shutil.copy(source_img_path, char_dir)
             print(f"copied {img_name} to {char_dir}")
 
+
 def main():
     opf_txt_path = '../../data/opf/DF8F32338.opf/base/4A8C.txt'
     missing_glyph_txt = '../../data/derge_glyphs_missing.txt'
-    yaml_file = '../../data/opf/DF8F32338.opf/layers/4A8C/Pagination.yml'
+    pagination_yml = '../../data/opf/DF8F32338.opf/layers/4A8C/Pagination.yml'
     image_dir = '../../data/source_images/W2KG209989'
     output_dir = '../../data/sorted_images'
 
-    text1 = read_file(opf_txt_path)
+    opf_text = read_file(opf_txt_path)
     characters = read_lines(missing_glyph_txt)
     characters = [char.strip() for char in characters]
-    yaml_data = load_yaml(yaml_file)
+    yaml_data = load_yaml(pagination_yml)
 
-    spans = find_spans(text1, characters)
+    spans = find_spans(opf_text, characters)
     references = check_spans_against_yaml(spans, yaml_data)
 
     copy_images_based_on_references(image_dir, references, output_dir)
+
 
 if __name__ == "__main__":
     main()
