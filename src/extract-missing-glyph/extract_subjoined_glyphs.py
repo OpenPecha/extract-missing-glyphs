@@ -29,13 +29,16 @@ def copy_matching_images(source_dir, target_dir, tibetan_char_codepoints):
                     break
 
 def main():
-    source_directory = r"C:\Users\tenka\monlam\project\create-font-from-glyph\data\font_data\derge_font\Derge_test_ten_glyphs\downloaded_images"
-    target_directory = "../../data/subjoined_glyphs/derge"
-    text_file_path = "../../data/subjoined_glyphs.txt"
-
-    tibetan_codepoints = read_tibetan_char_from_file(text_file_path)
-    copy_matching_images(source_directory, target_directory, tibetan_codepoints)
+    source_directory = "C:/Users/tenka/monlam/project/create-font-from-glyph/data/font_data/derge_font/Derge_test_ten_glyphs/downloaded_images"
+    output_glyph_dir = "../../data/subjoined_glyphs/derge"
+    input_txt_file = "../../data/subjoined_glyphs.txt"
+    output_txt_file = os.path.join(output_glyph_dir, "found_subjoined_glyphs.txt")  
+    tibetan_codepoints = read_tibetan_char_from_file(input_txt_file)
+    copy_matching_images(source_directory, output_glyph_dir, tibetan_codepoints)
     
+    with open(output_txt_file, 'w', encoding='utf-8') as f:
+        for filename in os.listdir(output_glyph_dir):
+            f.write(f"{filename}\n")
+
 if __name__ == "__main__":
     main()
-    
