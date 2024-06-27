@@ -23,9 +23,9 @@ def find_spans(text, characters):
     for char in characters:
         index = text.find(char)
         while index != -1:
-            index = text.find(char, index + 1)
             spans[char].append(index)
-        return spans
+            index = text.find(char, index + 1)
+    return spans
 
 
 def check_spans_against_yaml(spans, yaml_data):
@@ -46,51 +46,39 @@ def read_missing_glyphs(file_path):
     return [char.strip() for char in characters]
 
 
-def find_and_check_spans(base_dir, layers_dir, characters):
+def find_and_check_spans(txt_file, yml_file, characters):
     all_spans = {}
     all_references = {}
 
-    for txt_file in base_dir.glob('*.txt'):
-        opf_text = read_text(txt_file)
-        spans = find_spans(opf_text, characters)
-        for char, span_list in spans.items():
-            if char not in all_spans:
-                all_spans[char] = []
-            all_spans[char] += span_list
+    opf_text = read_text(txt_file)
+    spans = find_spans(opf_text, characters)
+    for char, span_list in spans.items():
+        if char not in all_spans:
+            all_spans[char] = []
+        all_spans[char] += span_list
 
-    for yml_dir in layers_dir.glob('*/'):
-        for yml_file in yml_dir.glob('*.yml'):
-            if yml_file.name == 'Pagination.yml':
-                yaml_data = load_yaml(yml_file)
-                references = check_spans_against_yaml(all_spans, yaml_data)
-                all_references.update(references)
+    yaml_data = load_yaml(yml_file)
+    references = check_spans_against_yaml(all_spans, yaml_data)
+    all_references.update(references)
 
-    return all_references
-
-
-def copy_images_based_on_references(image_dir, references, output_dir):
-    image_dir = Path(image_dir)
-    output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    for img_name, char in references.items():
-        source_img_path = image_dir / img_name
-        if source_img_path.exists():
-            char_dir = output_dir / char
-            char_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copy(source_img_path, char_dir)
-
+    return all_spans, all_references
 
 def main():
-    base_dir = Path('../../data/opf/P000001.opf/base/v001.txt')
+    txt_file = Path('../../data/opf/P000800.opf/base/v001.txt')
     missing_glyph_txt = Path('../../data/derge_glyphs_missing.txt')
-    layers_dir = Path('../../data/opf/P000001.opf/layers/v001')
-    image_dir = Path('../../data/source_images/W2KG209989')
-    output_dir = Path('../../data/sorted_images')
+    yml_file = Path('../../data/opf/P000800.opf/layers/v001/Pagination.yml')
 
     characters = read_missing_glyphs(missing_glyph_txt)
-    all_references = find_and_check_spans(base_dir, layers_dir, characters)
-    copy_images_based_on_references(image_dir, all_references, output_dir)
+    all_spans, all_references = find_and_check_spans(txt_file, yml_file, characters)
+    
+    print("Spans for each character:")
+    for char, spans in all_spans.items():
+        print(f"Character: {char}, Spans: {spans}")
+    
+    print("\nReferences based on spans:")
+    for ref, char in all_references.items():
+        print(f"Reference: {ref}, Character: {char}")
+
 
 if __name__ == "__main__":
     main()
