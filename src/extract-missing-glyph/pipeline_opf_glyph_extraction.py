@@ -37,7 +37,6 @@ def check_spans_against_yaml(spans, yaml_data, base_index=0):
                             references[char].append(annotation['reference'])
     return references
 
-
 def read_missing_glyphs(file_path):
     characters = read_char(file_path)
     return [char.strip() for char in characters]
@@ -92,6 +91,20 @@ def find_relative_spans(base_dir, layers_dir, characters, meta_data):
                 image_group_id = volume['image_group_id']
                 break
 
+        # Split the text into lines and consider double newlines as image breaks
+        lines = opf_text.split('\n')
+        line_break_positions = []
+        line_number = 1
+        for i, line in enumerate(lines):
+            if line == '' and i > 0 and lines[i-1] == '':
+                line_break_positions.append((i, 'image_break'))
+            else:
+                line_break_positions.append((i, line_number))
+                if line != '':
+                    line_number += 1
+                else:
+                    line_number = 1
+
         for yml_file in yml_dir.glob('*.yml'):
             if yml_file.name == 'Pagination.yml':
                 yaml_data = load_yaml(yml_file)
@@ -99,14 +112,23 @@ def find_relative_spans(base_dir, layers_dir, characters, meta_data):
                     start = annotation['span']['start']
                     end = annotation['span']['end']
                     reference = annotation['reference']
-                    relative_spans = {}
-                    for char in characters:
-                        relative_spans[char] = []
+                    relative_spans = {char: [] for char in characters}
                     for char, span_list in spans.items():
                         for span in span_list:
                             if start <= span < end:
                                 relative_span = span - start
-                                relative_spans[char].append(relative_span)
+                                # Calculate line number relative to the image
+                                char_position = 0
+                                relative_line_number = 1
+                                for position, line_num in line_break_positions:
+                                    if char_position <= span < char_position + len(lines[position]) + 1:
+                                        if line_num == 'image_break':
+                                            relative_line_number = 1
+                                        else:
+                                            relative_line_number = line_num
+                                        break
+                                    char_position += len(lines[position]) + 1
+                                relative_spans[char].append((relative_span, relative_line_number))
                     for char, rel_span_list in relative_spans.items():
                         if rel_span_list:
                             img_span_data.append({
