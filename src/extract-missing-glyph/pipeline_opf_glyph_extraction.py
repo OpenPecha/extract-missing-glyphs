@@ -84,9 +84,9 @@ def find_and_check_spans(base_dir, layers_dir, characters, meta_data):
     return all_spans
 
 
-def save_to_json(data, filename):
+def save_to_json(span_data, filename):
     with open(filename, 'w', encoding='utf-8') as file:
-        json.dump(data, file, ensure_ascii=False, indent=4)
+        json.dump(span_data, file, ensure_ascii=False, indent=4)
 
 
 def main():
