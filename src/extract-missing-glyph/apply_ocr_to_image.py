@@ -6,88 +6,75 @@ import os
 
 os.environ['TESSDATA_PREFIX'] = "C:\\Users\\tenka\\tessdata"
 
-def extract_tibetan_text_indices(image_path, output_path):
+def extract_line_info(image_path, output_path):
     image_name = os.path.basename(image_path)
     image = cv2.imread(image_path)
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    custom_config = r'--oem 3 --psm 6 -l bod'
-    data = pytesseract.image_to_data(gray, config=custom_config, output_type=Output.DICT)
+    
+    _, thresh = cv2.threshold(gray, 150, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
-    extracted_data = []
+    custom_config = r'--oem 3 --psm 6 -l bod'
+    data = pytesseract.image_to_data(thresh, config=custom_config, output_type=Output.DICT)
+
+    line_info = []
     n_boxes = len(data['level'])
-    unique_index = 0
+    line_number = 0
+    current_line_top = data['top'][0]
+    current_line_bottom = data['top'][0] + data['height'][0]
+    line_bounding_box = {
+        'left': data['left'][0],
+        'top': data['top'][0],
+        'width': data['width'][0],
+        'height': data['height'][0]
+    }
 
     for i in range(n_boxes):
-        if int(data['conf'][i]) > 0:
-            word = data['text'][i]
-            word_box = {
-                'left': data['left'][i],
-                'top': data['top'][i],
-                'width': data['width'][i],
-                'height': data['height'][i]
+        word_box = {
+            'left': data['left'][i],
+            'top': data['top'][i],
+            'width': data['width'][i],
+            'height': data['height'][i]
+        }
+
+        # Update line boundaries if this word is on a new line
+        if word_box['top'] > current_line_bottom + 5:  # Adjusted threshold for new line
+            line_info.append({
+                'line_number': line_number,
+                'line_bounding_box': line_bounding_box.copy()
+            })
+            line_number += 1
+            current_line_top = word_box['top']
+            current_line_bottom = word_box['top'] + word_box['height']
+            line_bounding_box = {
+                'left': word_box['left'],
+                'top': word_box['top'],
+                'width': word_box['width'],
+                'height': word_box['height']
             }
+        else:
+            current_line_bottom = max(current_line_bottom, word_box['top'] + word_box['height'])
+            line_bounding_box['left'] = min(line_bounding_box['left'], word_box['left'])
+            line_bounding_box['width'] = max(line_bounding_box['width'], word_box['left'] + word_box['width'] - line_bounding_box['left'])
+            line_bounding_box['height'] = current_line_bottom - current_line_top
 
-            if word.strip():
-                char_width = word_box['width'] / len(word)
-                for j, char in enumerate(word):
-                    char_info = {
-                        'image_name': image_name,
-                        'text': char,
-                        'bounding_box': {
-                            'left': int(word_box['left'] + j * char_width),
-                            'top': word_box['top'],
-                            'width': int(char_width),
-                            'height': word_box['height']
-                        },
-                        'index': unique_index
-                    }
-                    extracted_data.append(char_info)
-                    unique_index += 1
+    # Append the last line info
+    line_info.append({
+        'line_number': line_number,
+        'line_bounding_box': line_bounding_box.copy()
+    })
 
-                # Add a space if it's not the last word
-                if i < n_boxes - 1:
-                    space_width = 10 
-                    char_info = {
-                        'image_name': image_name,
-                        'text': ' ',
-                        'bounding_box': {
-                            'left': int(word_box['left'] + word_box['width']),
-                            'top': word_box['top'],
-                            'width': space_width,
-                            'height': word_box['height']
-                        },
-                        'index': unique_index
-                    }
-                    extracted_data.append(char_info)
-                    unique_index += 1
-
-    # Add handling for new lines by checking the y-coordinates
-    for i in range(n_boxes - 1):
-        current_bottom = data['top'][i] + data['height'][i]
-        next_top = data['top'][i + 1]
-        if next_top > current_bottom + 10:  # Arbitrary threshold for new line
-            new_line_info = {
-                'image_name': image_name,
-                'text': '\n',
-                'bounding_box': {
-                    'left': 0,
-                    'top': current_bottom,
-                    'width': 0,
-                    'height': next_top - current_bottom
-                },
-                'index': unique_index
-            }
-            extracted_data.append(new_line_info)
-            unique_index += 1
+    output_data = {
+        'image_name': image_name,
+        'total_lines': line_number + 1,
+        'lines': line_info
+    }
 
     with open(output_path, 'w', encoding='utf-8') as f:
-        for entry in extracted_data:
-            json.dump(entry, f, ensure_ascii=False)
-            f.write('\n')
+        json.dump(output_data, f, ensure_ascii=False, indent=4)
 
-    print(f"JSONL saved at {output_path}")
+    print(f"JSON saved at {output_path}")
 
 image_path = '../../data/source_images/W22084/08860015.tif'
-output_path = '../../data/ocr_jsonl/extracted_text_indices.jsonl'
+output_path = '../../data/ocr_jsonl/extracted_line_info.json'
 
-extract_tibetan_text_indices(image_path, output_path)
+extract_line_info(image_path, output_path)
