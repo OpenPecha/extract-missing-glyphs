@@ -2,17 +2,21 @@ import yaml
 import json
 from pathlib import Path
 
+
 def read_text(filename):
     with open(filename, 'r', encoding='utf-8') as file:
         return file.read()
+
 
 def read_char(filename):
     with open(filename, 'r', encoding='utf-8') as file:
         return [char.strip() for char in file.readlines()]
 
+
 def load_yaml(filename):
     with open(filename, 'r', encoding='utf-8') as file:
         return yaml.safe_load(file)
+
 
 def find_spans(text, characters):
     spans = {char: [] for char in characters}
@@ -22,6 +26,7 @@ def find_spans(text, characters):
             spans[char].append(index)
             index = text.find(char, index + 1)
     return spans
+
 
 def check_spans_against_yaml(spans, yaml_data, base_index=0):
     references = {char: [] for char in spans.keys()}
@@ -36,34 +41,6 @@ def check_spans_against_yaml(spans, yaml_data, base_index=0):
                             references[char].append(annotation['reference'])
     return references
 
-# def find_and_check_spans(base_dir, layers_dir, characters, meta_data):
-#     all_spans = []
-#     text_files = sorted(base_dir.glob('*.txt'))
-#     yaml_dirs = sorted(layers_dir.glob('*/'))
-
-#     for txt_file, yml_dir in zip(text_files, yaml_dirs):
-#         opf_text = read_text(txt_file)
-#         spans = find_spans(opf_text, characters)
-#         image_group_id = next((volume['image_group_id'] for volume in meta_data['source_metadata']['volumes'].values() if volume['base_file'] == txt_file.name), None)
-
-#         for char, span_list in spans.items():
-#             all_spans.append({
-#                 "character": char,
-#                 "text_file": txt_file.name,
-#                 "span": span_list,
-#                 "references": [],
-#                 "image_group_id": image_group_id
-#             })
-
-#         for yml_file in yml_dir.glob('Pagination.yml'):
-#             yaml_data = load_yaml(yml_file)
-#             references = check_spans_against_yaml(spans, yaml_data)
-#             for char, ref_list in references.items():
-#                 for span_dict in all_spans:
-#                     if span_dict["character"] == char and span_dict["text_file"] == txt_file.name:
-#                         span_dict["references"] = list(set(span_dict["references"]).union(ref_list))
-
-#     return all_spans
 
 def find_relative_spans(base_dir, layers_dir, characters, meta_data):
     img_span_data = []
@@ -73,7 +50,8 @@ def find_relative_spans(base_dir, layers_dir, characters, meta_data):
     for txt_file, yml_dir in zip(text_files, yaml_dirs):
         opf_text = read_text(txt_file)
         spans = find_spans(opf_text, characters)
-        image_group_id = next((volume['image_group_id'] for volume in meta_data['source_metadata']['volumes'].values() if volume['base_file'] == txt_file.name), None)
+        image_group_id = next((volume['image_group_id'] for volume in meta_data['source_metadata']
+                              ['volumes'].values() if volume['base_file'] == txt_file.name), None)
 
         lines = opf_text.split('\n')
         line_number = 1
@@ -109,29 +87,30 @@ def find_relative_spans(base_dir, layers_dir, characters, meta_data):
                         img_span_data.append({
                             "char": char,
                             "txt_file": txt_file.name,
-                            "reference": {reference: rel_span_list},
-                            "image_group_id": image_group_id
+                            "image_group_id": image_group_id,
+                            "reference": {reference: rel_span_list}
                         })
 
     return img_span_data
 
+
 def save_to_json(data, filename):
     with open(filename, 'w', encoding='utf-8') as file:
         json.dump(data, file, ensure_ascii=False, indent=4)
+
 
 def main():
     base_dir = Path('../../data/opf/P000001.opf/base/')
     missing_glyph_txt = Path('../../data/derge_glyphs_missing.txt')
     layers_dir = Path('../../data/opf/P000001.opf/layers/')
     meta_file = Path('../../data/opf/P000001.opf/meta.yml')
+    json_span_file = Path('../../data/span/img_span.json')  # output file
 
     characters = read_char(missing_glyph_txt)
     meta_data = load_yaml(meta_file)
-    # all_spans = find_and_check_spans(base_dir, layers_dir, characters, meta_data)
-    # save_to_json(all_spans, "../../data/span/span.json")
-
     img_span_data = find_relative_spans(base_dir, layers_dir, characters, meta_data)
-    save_to_json(img_span_data, "../../data/span/img_span.json")
+    save_to_json(img_span_data, json_span_file)
+
 
 if __name__ == "__main__":
     main()
