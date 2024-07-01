@@ -9,11 +9,6 @@ def load_jsonl(file_path):
         return [json.loads(line) for line in file]
 
 
-def crop_image(image, bbox):
-    left, top, width, height = bbox['left'], bbox['top'], bbox['width'], bbox['height']
-    return image[top:top + height, left:left + width]
-
-
 def save_cropped_image(char, count, cropped_image, output_dir):
     char_dir = Path(output_dir) / char
     char_dir.mkdir(parents=True, exist_ok=True)
@@ -45,11 +40,17 @@ def process_image_span_data(image_span_data, image_line_data, img_dir, output_di
                     if image_path.exists():
                         image = cv2.imread(str(image_path))
                         if image is not None:
-                            cropped_image = crop_image(image, bbox)
+                            left, top, width, height = bbox['left'], bbox['top'], bbox['width'], bbox['height']
+                            cropped_image = image[top:top + height, left:left + width]
+
+                            # resize image
+                            resized_image = cv2.resize(
+                                cropped_image, (cropped_image.shape[1] * 2, cropped_image.shape[0] * 2), interpolation=cv2.INTER_LINEAR)
+
                             char_counts[char] += 1
-                            save_cropped_image(char, char_counts[char], cropped_image, output_dir)
+                            save_cropped_image(char, char_counts[char], resized_image, output_dir)
                     else:
-                        print(f"img doesnt exist: {image_path}")
+                        print(f"img doesn't exist: {image_path}")
 
 
 def main():
