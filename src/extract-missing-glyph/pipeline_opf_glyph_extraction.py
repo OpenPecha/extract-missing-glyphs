@@ -94,9 +94,10 @@ def find_relative_spans(base_dir, layers_dir, characters, meta_data):
     return img_span_data
 
 
-def save_to_json(data, filename):
+def save_to_jsonl(data, filename):
     with open(filename, 'w', encoding='utf-8') as file:
-        json.dump(data, file, ensure_ascii=False, indent=4)
+        for entry in data:
+            file.write(json.dumps(entry, ensure_ascii=False) + '\n')
 
 
 def main():
@@ -104,12 +105,12 @@ def main():
     missing_glyph_txt = Path('../../data/derge_glyphs_missing.txt')
     layers_dir = Path('../../data/opf/P000001.opf/layers/')
     meta_file = Path('../../data/opf/P000001.opf/meta.yml')
-    json_span_file = Path('../../data/span/img_span.json')  # output file
+    jsonl_span_file = Path('../../data/span/img_span.jsonl')  # output file
 
     characters = read_char(missing_glyph_txt)
     meta_data = load_yaml(meta_file)
     img_span_data = find_relative_spans(base_dir, layers_dir, characters, meta_data)
-    save_to_json(img_span_data, json_span_file)
+    save_to_jsonl(img_span_data, jsonl_span_file)
 
 
 if __name__ == "__main__":
