@@ -13,7 +13,6 @@ def upload_to_s3_and_return_data(local_path, pub_type, final_jsonl):
         if image_path.is_file():
             relative_path = image_path.relative_to(local_directory)
             s3_key = f"glyph/subjoined_glyphs/{pub_type}/{relative_path}".replace("\\", "/")
-            s3_url = f"s3://{bucket_name}/{s3_key}"
 
             try:
                 with open(image_path, "rb") as image_file:
@@ -23,7 +22,7 @@ def upload_to_s3_and_return_data(local_path, pub_type, final_jsonl):
                 text = relative_path.parts[0]
                 image_id = image_path.name
 
-                final_jsonl.append({"id": image_id, "image_url": s3_url, "text": text})
+                final_jsonl.append({"id": image_id, "image_url": s3_key, "text": text})
             except Exception as e:
                 print(f"failed to upload {relative_path}: {e}")
 
@@ -42,7 +41,7 @@ def main():
     final_jsonl = []
 
     final_jsonl = upload_to_s3_and_return_data(local_path, pub_type, final_jsonl)
-    jsonl_path = Path("../../data/jsonl/subjoined_glyphs.jsonl")
+    jsonl_path = Path("../../data/prodigy_jsonl/derge_subjoined_glyphs.jsonl")
     write_jsonl(final_jsonl, jsonl_path)
 
 

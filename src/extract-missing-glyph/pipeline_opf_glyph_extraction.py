@@ -1,5 +1,6 @@
 import yaml
 import json
+import csv
 from pathlib import Path
 
 
@@ -100,17 +101,31 @@ def save_to_jsonl(data, filename):
             file.write(json.dumps(entry, ensure_ascii=False) + '\n')
 
 
+def save_to_csv(data, filename):
+    with open(filename, 'w', newline='', encoding='utf-8') as file:
+        writer = csv.writer(file)
+        writer.writerow(['char', 'txt_file', 'image_group_id', 'reference'])
+        for entry in data:
+            char = entry['char']
+            txt_file = entry['txt_file']
+            image_group_id = entry['image_group_id']
+            reference = json.dumps(entry['reference'], ensure_ascii=False)
+            writer.writerow([char, txt_file, image_group_id, reference])
+
+
 def main():
     base_dir = Path('../../data/opf/P000001.opf/base/')
     missing_glyph_txt = Path('../../data/derge_glyphs_missing.txt')
     layers_dir = Path('../../data/opf/P000001.opf/layers/')
     meta_file = Path('../../data/opf/P000001.opf/meta.yml')
-    jsonl_span_file = Path('../../data/span/img_span.jsonl')  # output file
+    jsonl_span_file = Path('../../data/span_jsonl/img_span.jsonl')  # output file
+    csv_span_file = Path('../../data/span_csv/img_span.csv')  # output csv file
 
     characters = read_char(missing_glyph_txt)
     meta_data = load_yaml(meta_file)
     img_span_data = find_relative_spans(base_dir, layers_dir, characters, meta_data)
     save_to_jsonl(img_span_data, jsonl_span_file)
+    save_to_csv(img_span_data, csv_span_file)
 
 
 if __name__ == "__main__":
