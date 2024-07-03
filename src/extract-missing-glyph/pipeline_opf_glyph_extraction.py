@@ -19,13 +19,15 @@ def load_yaml(filename):
         return yaml.safe_load(file)
 
 
-def find_spans(text, characters):
+def find_spans(text, characters, max_occurrences, global_counts):
     spans = {char: [] for char in characters}
     for char in characters:
-        index = text.find(char)
-        while index != -1:
-            spans[char].append(index)
-            index = text.find(char, index + 1)
+        if global_counts[char] < max_occurrences:
+            index = text.find(char)
+            while index != -1 and global_counts[char] < max_occurrences:
+                spans[char].append(index)
+                global_counts[char] += 1
+                index = text.find(char, index + 1)
     return spans
 
 
@@ -43,54 +45,67 @@ def check_spans_against_yaml(spans, yaml_data, base_index=0):
     return references
 
 
-def find_relative_spans(base_dir, layers_dir, characters, meta_data):
+def find_relative_spans(base_dirs, layers_dirs, characters, meta_files, max_occurrences=10):
     img_span_data = []
-    text_files = sorted(base_dir.glob('*.txt'))
-    yaml_dirs = sorted(layers_dir.glob('*/'))
+    global_counts = {char: 0 for char in characters}
 
-    for txt_file, yml_dir in zip(text_files, yaml_dirs):
-        opf_text = read_text(txt_file)
-        spans = find_spans(opf_text, characters)
-        image_group_id = next((volume['image_group_id'] for volume in meta_data['source_metadata']
-                              ['volumes'].values() if volume['base_file'] == txt_file.name), None)
+    for base_dir, layers_dir, meta_file in zip(base_dirs, layers_dirs, meta_files):
+        text_files = sorted(base_dir.glob('*.txt'))
+        yaml_dirs = sorted(layers_dir.glob('*/'))
 
-        lines = opf_text.split('\n')
-        line_number = 1
-        line_break_positions = []
-        for i, line in enumerate(lines):
-            if line == '' and i > 0 and lines[i-1] == '':
-                line_break_positions.append((i, 'image_break'))
-            else:
-                line_break_positions.append((i, line_number))
-                if line != '':
-                    line_number += 1
+        if not text_files or not yaml_dirs:
+            continue
+
+        meta_data = load_yaml(meta_file)
+
+        for txt_file, yml_dir in zip(text_files, yaml_dirs):
+            opf_text = read_text(txt_file)
+            spans = find_spans(opf_text, characters, max_occurrences, global_counts)
+            base_file_name = txt_file.stem
+
+            image_group_id = base_file_name
+            for volume in meta_data.get('source_metadata', {}).get('volumes', {}).values():
+                if volume.get('base_file') == txt_file.name:
+                    image_group_id = volume.get('image_group_id', base_file_name)
+                    break
+
+            lines = opf_text.split('\n')
+            line_number = 1
+            line_break_positions = []
+            for i, line in enumerate(lines):
+                if line == '' and i > 0 and lines[i-1] == '':
+                    line_break_positions.append((i, 'image_break'))
                 else:
-                    line_number = 1
+                    line_break_positions.append((i, line_number))
+                    if line != '':
+                        line_number += 1
+                    else:
+                        line_number = 1
 
-        for yml_file in yml_dir.glob('Pagination.yml'):
-            yaml_data = load_yaml(yml_file)
-            for annotation in yaml_data['annotations'].values():
-                start, end, reference = annotation['span']['start'], annotation['span']['end'], annotation['reference']
-                relative_spans = {char: [] for char in characters}
-                for char, span_list in spans.items():
-                    for span in span_list:
-                        if start <= span < end:
-                            relative_span = span - start
-                            char_position = 0
-                            for position, line_num in line_break_positions:
-                                if char_position <= span < char_position + len(lines[position]) + 1:
-                                    relative_line_number = 1 if line_num == 'image_break' else line_num
-                                    break
-                                char_position += len(lines[position]) + 1
-                            relative_spans[char].append((relative_span, relative_line_number))
-                for char, rel_span_list in relative_spans.items():
-                    if rel_span_list:
-                        img_span_data.append({
-                            "char": char,
-                            "txt_file": txt_file.name,
-                            "image_group_id": image_group_id,
-                            "reference": {reference: rel_span_list}
-                        })
+            for yml_file in yml_dir.glob('Pagination.yml'):
+                yaml_data = load_yaml(yml_file)
+                for annotation in yaml_data['annotations'].values():
+                    start, end, reference = annotation['span']['start'], annotation['span']['end'], annotation['reference']
+                    relative_spans = {char: [] for char in characters}
+                    for char, span_list in spans.items():
+                        for span in span_list:
+                            if start <= span < end:
+                                relative_span = span - start
+                                char_position = 0
+                                for position, line_num in line_break_positions:
+                                    if char_position <= span < char_position + len(lines[position]) + 1:
+                                        relative_line_number = 1 if line_num == 'image_break' else line_num
+                                        break
+                                    char_position += len(lines[position]) + 1
+                                relative_spans[char].append((relative_span, relative_line_number))
+                    for char, rel_span_list in relative_spans.items():
+                        if rel_span_list:
+                            img_span_data.append({
+                                "char": char,
+                                "txt_file": txt_file.name,
+                                "image_group_id": image_group_id,
+                                "reference": {reference: rel_span_list}
+                            })
 
     return img_span_data
 
@@ -114,16 +129,20 @@ def save_to_csv(data, filename):
 
 
 def main():
-    base_dir = Path('../../data/opf/P000001.opf/base/')
+    opf_base_dir = Path('../../data/opf/')
     missing_glyph_txt = Path('../../data/derge_glyphs_missing.txt')
-    layers_dir = Path('../../data/opf/P000001.opf/layers/')
-    meta_file = Path('../../data/opf/P000001.opf/meta.yml')
     jsonl_span_file = Path('../../data/span_jsonl/img_span.jsonl')  # output file
     csv_span_file = Path('../../data/span_csv/img_span.csv')  # output csv file
 
     characters = read_char(missing_glyph_txt)
-    meta_data = load_yaml(meta_file)
-    img_span_data = find_relative_spans(base_dir, layers_dir, characters, meta_data)
+
+    opf_dirs = [d for d in opf_base_dir.glob('*.opf') if d.is_dir()]
+
+    base_dirs = [d / 'base' for d in opf_dirs]
+    layers_dirs = [d / 'layers' for d in opf_dirs]
+    meta_files = [d / 'meta.yml' for d in opf_dirs]
+
+    img_span_data = find_relative_spans(base_dirs, layers_dirs, characters, meta_files)
     save_to_jsonl(img_span_data, jsonl_span_file)
     save_to_csv(img_span_data, csv_span_file)
 
