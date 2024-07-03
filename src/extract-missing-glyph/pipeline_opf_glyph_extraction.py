@@ -45,8 +45,17 @@ def check_spans_against_yaml(spans, yaml_data, base_index=0):
     return references
 
 
-def find_relative_spans(base_dirs, layers_dirs, characters, meta_files, max_occurrences=10):
-    img_span_data = []
+def extract_work_id(meta_data):
+    if 'source_metadata' in meta_data and 'id' in meta_data['source_metadata']:
+        source_id = meta_data['source_metadata']['id']
+        if source_id.startswith('http://') or source_id.startswith('https://'):
+            return source_id.split('/')[-1]
+        return source_id.split(':')[-1]
+    return None
+
+
+def find_char_mapping(base_dirs, layers_dirs, characters, meta_files, max_occurrences=10):
+    char_mapping = []
     global_counts = {char: 0 for char in characters}
 
     for base_dir, layers_dir, meta_file in zip(base_dirs, layers_dirs, meta_files):
@@ -57,6 +66,7 @@ def find_relative_spans(base_dirs, layers_dirs, characters, meta_files, max_occu
             continue
 
         meta_data = load_yaml(meta_file)
+        work_id = extract_work_id(meta_data)
 
         for txt_file, yml_dir in zip(text_files, yaml_dirs):
             opf_text = read_text(txt_file)
@@ -100,14 +110,15 @@ def find_relative_spans(base_dirs, layers_dirs, characters, meta_files, max_occu
                                 relative_spans[char].append((relative_span, relative_line_number))
                     for char, rel_span_list in relative_spans.items():
                         if rel_span_list:
-                            img_span_data.append({
+                            char_mapping.append({
                                 "char": char,
                                 "txt_file": txt_file.name,
                                 "image_group_id": image_group_id,
+                                "work_id": work_id,
                                 "reference": {reference: rel_span_list}
                             })
 
-    return img_span_data
+    return char_mapping
 
 
 def save_to_jsonl(data, filename):
@@ -119,13 +130,14 @@ def save_to_jsonl(data, filename):
 def save_to_csv(data, filename):
     with open(filename, 'w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
-        writer.writerow(['char', 'txt_file', 'image_group_id', 'reference'])
+        writer.writerow(['char', 'txt_file', 'image_group_id', 'work_id', 'reference'])
         for entry in data:
             char = entry['char']
             txt_file = entry['txt_file']
             image_group_id = entry['image_group_id']
+            work_id = entry['work_id']
             reference = json.dumps(entry['reference'], ensure_ascii=False)
-            writer.writerow([char, txt_file, image_group_id, reference])
+            writer.writerow([char, txt_file, image_group_id, work_id, reference])
 
 
 def main():
@@ -142,9 +154,9 @@ def main():
     layers_dirs = [d / 'layers' for d in opf_dirs]
     meta_files = [d / 'meta.yml' for d in opf_dirs]
 
-    img_span_data = find_relative_spans(base_dirs, layers_dirs, characters, meta_files)
-    save_to_jsonl(img_span_data, jsonl_span_file)
-    save_to_csv(img_span_data, csv_span_file)
+    char_mapping_data = find_char_mapping(base_dirs, layers_dirs, characters, meta_files)
+    save_to_jsonl(char_mapping_data, jsonl_span_file)
+    save_to_csv(char_mapping_data, csv_span_file)
 
 
 if __name__ == "__main__":
