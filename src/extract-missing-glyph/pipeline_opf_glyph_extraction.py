@@ -121,12 +121,6 @@ def find_char_mapping(base_dirs, layers_dirs, characters, meta_files, max_occurr
     return char_mapping
 
 
-def save_to_jsonl(data, filename):
-    with open(filename, 'w', encoding='utf-8') as file:
-        for entry in data:
-            file.write(json.dumps(entry, ensure_ascii=False) + '\n')
-
-
 def save_to_csv(data, filename):
     with open(filename, 'w', newline='', encoding='utf-8') as file:
         writer = csv.writer(file)
@@ -143,8 +137,7 @@ def save_to_csv(data, filename):
 def main():
     opf_base_dir = Path('../../data/opf/')
     missing_glyph_txt = Path('../../data/derge_glyphs_missing.txt')
-    jsonl_span_file = Path('../../data/span_jsonl/img_span.jsonl')  # output file
-    csv_span_file = Path('../../data/span_csv/img_span.csv')  # output csv file
+    csv_span_file = Path('../../data/mapping_csv/derge_char_mapping.csv')  # output csv file
 
     characters = read_char(missing_glyph_txt)
 
@@ -155,7 +148,6 @@ def main():
     meta_files = [d / 'meta.yml' for d in opf_dirs]
 
     char_mapping_data = find_char_mapping(base_dirs, layers_dirs, characters, meta_files)
-    save_to_jsonl(char_mapping_data, jsonl_span_file)
     save_to_csv(char_mapping_data, csv_span_file)
 
 
