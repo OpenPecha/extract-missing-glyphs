@@ -16,6 +16,7 @@ def download_images_from_s3(csv_file, bucket_name, download_dir):
 
     with open(csv_file, 'r', encoding='utf-8') as file:
         reader = csv.DictReader(file)
+        next(reader, None) 
 
         for row in reader:
             work_id = row['work_id']

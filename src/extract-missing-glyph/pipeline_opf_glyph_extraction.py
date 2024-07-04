@@ -131,12 +131,13 @@ def save_to_csv(data, filename):
             image_group_id = entry['image_group_id']
             work_id = entry['work_id']
             reference = json.dumps(entry['reference'], ensure_ascii=False)
+            reference = reference.replace('"', '')
             writer.writerow([char, txt_file, image_group_id, work_id, reference])
 
 
 def main():
     opf_base_dir = Path('../../data/opf/')
-    missing_glyph_txt = Path('../../data/derge_glyphs_missing.txt')
+    missing_glyph_txt = Path('../../data/derge_missing_glyphs.txt')
     csv_span_file = Path('../../data/mapping_csv/derge_char_mapping.csv')  # output csv file
 
     characters = read_char(missing_glyph_txt)
