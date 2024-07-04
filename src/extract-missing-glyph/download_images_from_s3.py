@@ -11,6 +11,12 @@ def get_hash(work_id):
     return two
 
 
+def clean_reference_string(reference):
+    if reference.startswith('{'):
+        reference = reference.replace("'", "\"")
+    return reference
+
+
 def download_images_from_s3(csv_file, bucket_name, download_dir):
     s3 = boto3.client('s3')
 
@@ -21,7 +27,15 @@ def download_images_from_s3(csv_file, bucket_name, download_dir):
         for row in reader:
             work_id = row['work_id']
             image_group_id = row['image_group_id']
-            references = json.loads(row['reference'])
+            reference_str = row['reference']
+            clean_reference_str = clean_reference_string(reference_str)
+
+            try:
+                references = json.loads(clean_reference_str)
+            except json.JSONDecodeError as e:
+                print(f"Error parsing JSON in reference field: {clean_reference_str}")
+                print(f"Error: {e}")
+                continue
 
             if not (image_group_id[2].isalpha() or image_group_id[3].isalpha()):
                 image_group_id = image_group_id[1:]
