@@ -16,7 +16,7 @@ def download_images_from_s3(csv_file, bucket_name, download_dir):
 
     with open(csv_file, 'r', encoding='utf-8') as file:
         reader = csv.DictReader(file)
-        next(reader, None) 
+        next(reader, None)
 
         for row in reader:
             work_id = row['work_id']
@@ -40,7 +40,7 @@ def download_images_from_s3(csv_file, bucket_name, download_dir):
 
 
 def main():
-    csv_file = "../../data/mapping_csv/char_mapping.csv"
+    csv_file = "../../data/mapping_csv/derge_char_mapping.csv"
     bucket_name = "archive.tbrc.org"
     download_dir = "../../data/downloaded_images/derge"
     download_images_from_s3(csv_file, bucket_name, download_dir)
