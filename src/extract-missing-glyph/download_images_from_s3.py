@@ -3,6 +3,7 @@ import csv
 import boto3
 from pathlib import Path
 import json
+import re
 
 
 def get_hash(work_id):
@@ -12,8 +13,7 @@ def get_hash(work_id):
 
 
 def clean_reference_string(reference):
-    if reference.startswith('{'):
-        reference = reference.replace("'", "\"")
+    reference = re.sub(r'([a-zA-Z0-9._]+):', r'"\1":', reference)
     return reference
 
 
