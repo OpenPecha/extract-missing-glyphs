@@ -131,7 +131,6 @@ def save_to_csv(data, filename):
             image_group_id = entry['image_group_id']
             work_id = entry['work_id']
             reference = json.dumps(entry['reference'], ensure_ascii=False)
-            reference = reference.replace('"', '')
             writer.writerow([char, txt_file, image_group_id, work_id, reference])
 
 

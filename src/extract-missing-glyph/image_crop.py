@@ -1,5 +1,6 @@
 import json
 import cv2
+import pandas as pd
 from pathlib import Path
 from PIL import Image
 
@@ -7,6 +8,10 @@ from PIL import Image
 def load_jsonl(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
         return [json.loads(line) for line in file]
+
+
+def load_csv(file_path):
+    return pd.read_csv(file_path)
 
 
 def save_cropped_image(char, count, cropped_image, output_dir):
@@ -17,9 +22,8 @@ def save_cropped_image(char, count, cropped_image, output_dir):
     try:
         pil_image = Image.fromarray(cv2.cvtColor(cropped_image, cv2.COLOR_BGR2RGB))
         pil_image.save(str(output_path))
-        print(f"cropped image saved at: {output_path}")
     except Exception as e:
-        print(f"error while saving image: {e}")
+        print(f"Error while saving image: {e}")
 
 
 def process_image_span_data(image_span_data, image_line_data, img_dir, output_dir):
@@ -29,40 +33,54 @@ def process_image_span_data(image_span_data, image_line_data, img_dir, output_di
     }
 
     char_counts = {}
-    for span in image_span_data:
+    for _, span in image_span_data.iterrows():
         char = span['char']
         char_counts[char] = char_counts.get(char, 0)
-        for image_name, lines in span['reference'].items():
+        references = json.loads(span['reference'])
+
+        for image_name_with_ext, lines in references.items():
+            image_name = Path(image_name_with_ext).stem
             for _, line_number in lines:
                 if image_name in line_data_dict and line_number in line_data_dict[image_name]:
                     bbox = line_data_dict[image_name][line_number]
-                    image_path = Path(img_dir) / image_name
+                    image_path = img_dir / image_name_with_ext
                     if image_path.exists():
                         image = cv2.imread(str(image_path))
                         if image is not None:
+                            print(f"Cropping image: {image_name_with_ext}")
                             left, top, width, height = bbox['left'], bbox['top'], bbox['width'], bbox['height']
+
+                            expanded_height = int(height * 3)
+                            top = max(0, top - (expanded_height - height) // 2)
+                            height = expanded_height
+
                             cropped_image = image[top:top + height, left:left + width]
 
-                            # resize image
                             resized_image = cv2.resize(
                                 cropped_image, (cropped_image.shape[1] * 2, cropped_image.shape[0] * 2), interpolation=cv2.INTER_LINEAR)
 
                             char_counts[char] += 1
                             save_cropped_image(char, char_counts[char], resized_image, output_dir)
-                    else:
-                        print(f"img doesn't exist: {image_path}")
+
+
+def process_all_images_and_jsonl(image_span_data_path, jsonl_dir, img_dir, output_dir):
+    image_span_data = load_csv(image_span_data_path)
+    
+    jsonl_files = list(Path(jsonl_dir).glob('*.jsonl'))
+    for jsonl_file in jsonl_files:
+        image_line_data = load_jsonl(jsonl_file)
+        for image_subdir in Path(img_dir).iterdir():
+            if image_subdir.is_dir():
+                process_image_span_data(image_span_data, image_line_data, image_subdir, output_dir)
 
 
 def main():
-    image_span_data_path = Path('../../data/span/img_span.jsonl')
-    image_line_data_path = Path('../../data/ocr_jsonl/extracted_line_info.jsonl')
-    img_dir = Path('../../data/source_images/W22084')
-    output_dir = Path('../../data/cropped_images')
+    image_span_data_path = '../../data/mapping_csv/derge_char_mapping.csv'
+    jsonl_dir = '../../data/ocr_jsonl'
+    img_dir = '../../data/source_images/derge'
+    output_dir = '../../data/cropped_images'
 
-    image_span_data = load_jsonl(image_span_data_path)
-    image_line_data = load_jsonl(image_line_data_path)
-
-    process_image_span_data(image_span_data, image_line_data, img_dir, output_dir)
+    process_all_images_and_jsonl(image_span_data_path, jsonl_dir, img_dir, output_dir)
 
 
 if __name__ == "__main__":
