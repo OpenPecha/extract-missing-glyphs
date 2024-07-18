@@ -54,7 +54,7 @@ def extract_work_id(meta_data):
     return None
 
 
-def find_char_mapping(base_dirs, layers_dirs, characters, meta_files, max_occurrences=10):
+def find_char_mapping(base_dirs, layers_dirs, characters, meta_files, max_occurrences=1):
     char_mapping = []
     global_counts = {char: 0 for char in characters}
 
