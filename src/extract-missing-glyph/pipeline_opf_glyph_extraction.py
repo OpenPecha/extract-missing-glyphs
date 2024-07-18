@@ -54,7 +54,7 @@ def extract_work_id(meta_data):
     return None
 
 
-def find_char_mapping(base_dirs, layers_dirs, characters, meta_files, max_occurrences=1):
+def find_char_mapping(base_dirs, layers_dirs, characters, meta_files, max_occurrences=10):
     char_mapping = []
     global_counts = {char: 0 for char in characters}
 
@@ -135,9 +135,9 @@ def save_to_csv(data, filename):
 
 
 def main():
-    opf_base_dir = Path('../../data/source_input_opf')
+    opf_base_dir = Path('../../data/source_ocr_opf')
     missing_glyph_txt = Path('../../data/derge_missing_glyphs.txt')
-    csv_span_file = Path('../../data/mapping_csv/derge_transcribed_char_mapping.csv')
+    csv_span_file = Path('../../data/mapping_csv/derge_ocr_char_mapping.csv')
 
     characters = read_char(missing_glyph_txt)
 

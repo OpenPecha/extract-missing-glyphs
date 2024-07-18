@@ -54,9 +54,9 @@ def download_images_from_s3(csv_file, bucket_name, download_dir):
 
 
 def main():
-    csv_file = "../../data/mapping_csv/derge_transcribed_char_mapping.csv"
+    csv_file = "../../data/mapping_csv/derge_ocr_char_mapping.csv"
     bucket_name = "archive.tbrc.org"
-    download_dir = "../../data/downloaded_images/opf_transcribed/derge"
+    download_dir = "../../data/downloaded_images/ocr_transcribed/derge"
     download_images_from_s3(csv_file, bucket_name, download_dir)
 
 
