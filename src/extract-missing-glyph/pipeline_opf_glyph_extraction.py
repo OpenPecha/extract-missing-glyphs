@@ -1,7 +1,7 @@
+from pathlib import Path
 import yaml
 import json
 import csv
-from pathlib import Path
 
 
 def read_text(filename):
@@ -69,6 +69,7 @@ def find_char_mapping(base_dirs, layers_dirs, characters, meta_files, max_occurr
         work_id = extract_work_id(meta_data)
 
         for txt_file, yml_dir in zip(text_files, yaml_dirs):
+            print(f"Parsing {txt_file}...")
             opf_text = read_text(txt_file)
             spans = find_spans(opf_text, characters, max_occurrences, global_counts)
             base_file_name = txt_file.stem
@@ -137,19 +138,19 @@ def save_to_csv(data, filename):
 def main():
     opf_base_dir = Path('../../data/opf/')
     missing_glyph_txt = Path('../../data/derge_missing_glyphs.txt')
-    csv_span_file = Path('../../data/mapping_csv/derge_char_mapping.csv')  # output csv file
+    csv_span_file = Path('../../data/mapping_csv/derge_tengyur_char_mapping.csv')  
 
     characters = read_char(missing_glyph_txt)
 
-    opf_dirs = [d for d in opf_base_dir.glob('*.opf') if d.is_dir()]
+    
+    opf_dir = opf_base_dir / 'P000002.opf'  # Derge tangyur
 
-    base_dirs = [d / 'base' for d in opf_dirs]
-    layers_dirs = [d / 'layers' for d in opf_dirs]
-    meta_files = [d / 'meta.yml' for d in opf_dirs]
+    base_dirs = [opf_dir / 'base']
+    layers_dirs = [opf_dir / 'layers']
+    meta_files = [opf_dir / 'meta.yml']
 
     char_mapping_data = find_char_mapping(base_dirs, layers_dirs, characters, meta_files)
     save_to_csv(char_mapping_data, csv_span_file)
-
 
 if __name__ == "__main__":
     main()

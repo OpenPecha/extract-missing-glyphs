@@ -6,13 +6,13 @@ s3_client = monlam_ai_ocr_s3_client
 bucket_name = MONLAM_AI_OCR_BUCKET
 
 
-def upload_to_s3_and_return_data(local_path, pub_type, final_jsonl):
+def upload_to_s3_and_return_data(local_path, final_jsonl):
     local_directory = Path(local_path)
     files_to_upload = list(local_directory.rglob('*'))
     for image_path in files_to_upload:
         if image_path.is_file():
             relative_path = image_path.relative_to(local_directory)
-            s3_key = f"glyph/subjoined_glyphs/{pub_type}/{relative_path}".replace("\\", "/")
+            s3_key = f"glyph/batch_2/derge_opf/{relative_path}".replace("\\", "/")
 
             try:
                 with open(image_path, "rb") as image_file:
@@ -36,13 +36,12 @@ def write_jsonl(final_jsonl, jsonl_path):
 
 
 def main():
-    pub_type = "derge"
-    local_path = Path("../../data/subjoined_glyphs/derge")
+    local_path = Path("../../data/cropped_images")
     final_jsonl = []
 
-    final_jsonl = upload_to_s3_and_return_data(local_path, pub_type, final_jsonl)
-    jsonl_path = Path("../../data/prodigy_jsonl/derge_subjoined_glyphs.jsonl")
-    write_jsonl(final_jsonl, jsonl_path)
+    final_jsonl = upload_to_s3_and_return_data(local_path, final_jsonl)
+    output_jsonl_path = Path("../../data/prodigy_jsonl/derge_opf_glyphs.jsonl")
+    write_jsonl(final_jsonl, output_jsonl_path)
 
 
 if __name__ == "__main__":

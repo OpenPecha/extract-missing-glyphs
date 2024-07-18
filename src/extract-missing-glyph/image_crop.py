@@ -26,16 +26,14 @@ def save_cropped_image(char, count, cropped_image, output_dir):
         print(f"Error while saving image: {e}")
 
 
-def process_image_span_data(image_span_data, image_line_data, img_dir, output_dir):
+def process_image_span_data(image_span_data, image_line_data, img_dir, output_dir, global_char_counter):
     line_data_dict = {
         item['image']: {item['line_number']: item['bounding_box'] for item in image_line_data}
         for item in image_line_data
     }
 
-    char_counts = {}
     for _, span in image_span_data.iterrows():
         char = span['char']
-        char_counts[char] = char_counts.get(char, 0)
         references = json.loads(span['reference'])
 
         for image_name_with_ext, lines in references.items():
@@ -43,7 +41,8 @@ def process_image_span_data(image_span_data, image_line_data, img_dir, output_di
             for _, line_number in lines:
                 if image_name in line_data_dict and line_number in line_data_dict[image_name]:
                     bbox = line_data_dict[image_name][line_number]
-                    image_path = img_dir / image_name_with_ext
+                    image_path = Path(img_dir) / image_name_with_ext
+
                     if image_path.exists():
                         image = cv2.imread(str(image_path))
                         if image is not None:
@@ -59,19 +58,26 @@ def process_image_span_data(image_span_data, image_line_data, img_dir, output_di
                             resized_image = cv2.resize(
                                 cropped_image, (cropped_image.shape[1] * 2, cropped_image.shape[0] * 2), interpolation=cv2.INTER_LINEAR)
 
-                            char_counts[char] += 1
-                            save_cropped_image(char, char_counts[char], resized_image, output_dir)
+                            global_char_counter[char] += 1
+                            save_cropped_image(char, global_char_counter[char], resized_image, output_dir)
 
 
 def process_all_images_and_jsonl(image_span_data_path, jsonl_dir, img_dir, output_dir):
     image_span_data = load_csv(image_span_data_path)
-    
+
     jsonl_files = list(Path(jsonl_dir).glob('*.jsonl'))
+    global_char_counter = {}
+
+    for _, span in image_span_data.iterrows():
+        char = span['char']
+        if char not in global_char_counter:
+            global_char_counter[char] = 0
+
     for jsonl_file in jsonl_files:
         image_line_data = load_jsonl(jsonl_file)
         for image_subdir in Path(img_dir).iterdir():
             if image_subdir.is_dir():
-                process_image_span_data(image_span_data, image_line_data, image_subdir, output_dir)
+                process_image_span_data(image_span_data, image_line_data, image_subdir, output_dir, global_char_counter)
 
 
 def main():

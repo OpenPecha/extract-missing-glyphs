@@ -6,6 +6,7 @@ from github import Github
 
 token = os.environ.get("GITHUB_TOKEN")
 
+
 def create_github_repo(repo_name):
     github_client = Github(token)
     org = github_client.get_organization("MonlamAI")
@@ -16,6 +17,7 @@ def create_github_repo(repo_name):
         print(f"Failed to create GitHub repository {repo_name}: {e}")
         return None
     return repo
+
 
 def publish_repo(local_repo, dir_names):
     repo_name = local_repo.name
@@ -40,6 +42,7 @@ def publish_repo(local_repo, dir_names):
     except git.exc.GitCommandError as e:
         print(f"Failed to push repository {repo_name}: {e}")
 
+
 def create_repo_folders(parent_dir, glyph_dirs, font_num):
     glyph_names = []
     repo_dirs = []
@@ -50,7 +53,7 @@ def create_repo_folders(parent_dir, glyph_dirs, font_num):
     all_dir_names = []
 
     for glyph_dir in glyph_dirs:
-        if len(list(glyph_dir.iterdir())) >= 5:
+        if len(list(glyph_dir.iterdir())) >= 1:
             if len(repo_dirs) == 10:
                 repo_dirs = []
                 font_num += 1
@@ -71,20 +74,23 @@ def create_repo_folders(parent_dir, glyph_dirs, font_num):
 
     return glyph_names, all_dir_names
 
+
 def create_repo_for_glyph(start_font_num):
-    glyph_dirs = list(Path("../data/cropped_images").iterdir())
-    parent_dir = Path("../data/batched_glyphs/derge_opf_glyphs")
+    glyph_dirs = list(Path("../../data/cropped_images").iterdir())
+    parent_dir = Path("../../data/batched_glyphs/derge_opf_glyphs")
     parent_dir.mkdir(parents=True, exist_ok=True)
-    
+
     font_num = start_font_num
     all_dir_names = create_repo_folders(parent_dir, glyph_dirs, font_num)
     for repo_dir in parent_dir.iterdir():
         if repo_dir.is_dir():
             publish_repo(repo_dir, all_dir_names)
 
+
 def main():
     start_font_num = 10007
     create_repo_for_glyph(start_font_num)
+
 
 if __name__ == "__main__":
     main()
