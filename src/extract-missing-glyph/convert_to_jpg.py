@@ -24,7 +24,7 @@ def convert_images_to_jpg(input_dir, output_dir):
                 print(f"Converted {file_path} to {output_file_path}")
 
 if __name__ == "__main__":
-    input_dir = "../../data/source_images"  
-    output_dir = "../../data/converted_source_images"  
+    input_dir = "../../data/opf_images"  
+    output_dir = "../../data/opf_converted_source_images"  
 
     convert_images_to_jpg(input_dir, output_dir)

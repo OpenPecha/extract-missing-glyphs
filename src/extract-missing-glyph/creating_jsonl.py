@@ -12,15 +12,15 @@ def upload_to_s3_and_return_data(local_path, final_jsonl):
     for image_path in files_to_upload:
         if image_path.is_file():
             relative_path = image_path.relative_to(local_directory)
-            s3_key = f"glyph/batch_2/derge_opf/{relative_path}".replace("\\", "/")
+            s3_key = f"glyph/derge_opf/batch_1/{relative_path}".replace("\\", "/")
 
             try:
                 with open(image_path, "rb") as image_file:
                     s3_client.upload_fileobj(image_file, bucket_name, s3_key)
                 print(f"uploaded {relative_path} to {s3_key}")
 
-                text = relative_path.parts[0]
                 image_id = image_path.name
+                text = image_path.stem  
 
                 final_jsonl.append({"id": image_id, "image_url": s3_key, "text": text})
             except Exception as e:
@@ -28,20 +28,30 @@ def upload_to_s3_and_return_data(local_path, final_jsonl):
 
     return final_jsonl
 
+def write_jsonl(final_jsonl, jsonl_base_path):
+    # Calculate split point
+    split_index = len(final_jsonl) // 2
 
-def write_jsonl(final_jsonl, jsonl_path):
-    with jsonlines.open(jsonl_path, mode="w") as writer:
-        writer.write_all(final_jsonl)
-    print(f"jsonl created at {jsonl_path}")
+    # First half
+    jsonl_path_1 = f"{jsonl_base_path}_part1.jsonl"
+    with jsonlines.open(jsonl_path_1, mode="w") as writer:
+        writer.write_all(final_jsonl[:split_index])
+    print(f"jsonl created at {jsonl_path_1}")
+
+    # Second half
+    jsonl_path_2 = f"{jsonl_base_path}_part2.jsonl"
+    with jsonlines.open(jsonl_path_2, mode="w") as writer:
+        writer.write_all(final_jsonl[split_index:])
+    print(f"jsonl created at {jsonl_path_2}")
 
 
 def main():
-    local_path = Path("../../data/cropped_images")
+    local_path = Path(r"C:\Users\tenka\monlam\project\image-cropping-prodigy\data\cropped_images")
     final_jsonl = []
 
     final_jsonl = upload_to_s3_and_return_data(local_path, final_jsonl)
-    output_jsonl_path = Path("../../data/prodigy_jsonl/derge_opf_glyphs.jsonl")
-    write_jsonl(final_jsonl, output_jsonl_path)
+    jsonl_base_path = "../../data/prodigy_jsonl/derge_opf_glyphs"
+    write_jsonl(final_jsonl, jsonl_base_path)
 
 
 if __name__ == "__main__":
