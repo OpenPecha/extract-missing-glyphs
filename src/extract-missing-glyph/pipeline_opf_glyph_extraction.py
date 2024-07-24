@@ -3,21 +3,17 @@ import json
 import csv
 from pathlib import Path
 
-
 def read_text(filename):
     with open(filename, 'r', encoding='utf-8') as file:
         return file.read()
-
 
 def read_char(filename):
     with open(filename, 'r', encoding='utf-8') as file:
         return [char.strip() for char in file.readlines()]
 
-
 def load_yaml(filename):
     with open(filename, 'r', encoding='utf-8') as file:
         return yaml.safe_load(file)
-
 
 def find_spans(text, characters, max_occurrences, global_counts):
     spans = {char: [] for char in characters}
@@ -29,7 +25,6 @@ def find_spans(text, characters, max_occurrences, global_counts):
                 global_counts[char] += 1
                 index = text.find(char, index + 1)
     return spans
-
 
 def check_spans_against_yaml(spans, yaml_data, base_index=0):
     references = {char: [] for char in spans.keys()}
@@ -44,7 +39,6 @@ def check_spans_against_yaml(spans, yaml_data, base_index=0):
                             references[char].append(annotation['reference'])
     return references
 
-
 def extract_work_id(meta_data):
     if 'source_metadata' in meta_data and 'id' in meta_data['source_metadata']:
         source_id = meta_data['source_metadata']['id']
@@ -53,8 +47,16 @@ def extract_work_id(meta_data):
         return source_id.split(':')[-1]
     return None
 
+def load_existing_mappings(filename):
+    existing_mappings = set()
+    with open(filename, 'r', encoding='utf-8') as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            key = (row['char'], row['txt_file'], row['image_group_id'], row['work_id'], json.dumps(row['reference'], ensure_ascii=False))
+            existing_mappings.add(key)
+    return existing_mappings
 
-def find_char_mapping(base_dirs, layers_dirs, characters, meta_files, max_occurrences=9):
+def find_char_mapping(base_dirs, layers_dirs, characters, meta_files, existing_mappings, max_occurrences=9):
     char_mapping = []
     global_counts = {char: 0 for char in characters}
 
@@ -110,16 +112,18 @@ def find_char_mapping(base_dirs, layers_dirs, characters, meta_files, max_occurr
                                 relative_spans[char].append((relative_span, relative_line_number))
                     for char, rel_span_list in relative_spans.items():
                         if rel_span_list:
-                            char_mapping.append({
+                            entry = {
                                 "char": char,
                                 "txt_file": txt_file.name,
                                 "image_group_id": image_group_id,
                                 "work_id": work_id,
                                 "reference": {reference: rel_span_list}
-                            })
+                            }
+                            key = (entry['char'], entry['txt_file'], entry['image_group_id'], entry['work_id'], json.dumps(entry['reference'], ensure_ascii=False))
+                            if key not in existing_mappings:
+                                char_mapping.append(entry)
 
     return char_mapping
-
 
 def save_to_csv(data, filename):
     with open(filename, 'w', newline='', encoding='utf-8') as file:
@@ -133,11 +137,11 @@ def save_to_csv(data, filename):
             reference = json.dumps(entry['reference'], ensure_ascii=False)
             writer.writerow([char, txt_file, image_group_id, work_id, reference])
 
-
 def main():
     opf_base_dir = Path('../../data/source_ocr_opf')
-    missing_glyph_txt = Path('../../data/derge_missing_glyphs.txt')
-    csv_span_file = Path('../../data/mapping_csv/derge_ocr_char_mapping.csv')
+    missing_glyph_txt = Path('../../data/test_get_glyph_list/txt_file/derge_missing_glyphs.txt')
+    csv_span_file = Path('../../data/mapping_csv/derge_variant_opf_ocr_char_mapping.csv')
+    existing_mapping_file = Path('../../data/mapping_csv/derge_opf_char_mapping.csv')
 
     characters = read_char(missing_glyph_txt)
 
@@ -147,9 +151,10 @@ def main():
     layers_dirs = [d / 'layers' for d in opf_dirs]
     meta_files = [d / 'meta.yml' for d in opf_dirs]
 
-    char_mapping_data = find_char_mapping(base_dirs, layers_dirs, characters, meta_files)
-    save_to_csv(char_mapping_data, csv_span_file)
+    existing_mappings = load_existing_mappings(existing_mapping_file)
+    char_mapping_data = find_char_mapping(base_dirs, layers_dirs, characters, meta_files, existing_mappings)
 
+    save_to_csv(char_mapping_data, csv_span_file)
 
 if __name__ == "__main__":
     main()
