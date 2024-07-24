@@ -51,6 +51,7 @@ def download_images_from_s3(csv_file, bucket_name, download_dir):
                     print(f"Downloaded {s3_key} to {download_path}")
                 except Exception as e:
                     print(f"Failed to download {s3_key}: {e}")
+                    print(f"Check permissions and bucket/object path.")
 
 
 def main():
