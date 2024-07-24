@@ -37,8 +37,8 @@ def download_images_from_s3(csv_file, bucket_name, download_dir):
                 print(f"Error: {e}")
                 continue
 
-            if not (image_group_id[2].isalpha() or image_group_id[3].isalpha()):
-                image_group_id = image_group_id[1:]
+            # if not (image_group_id[2].isalpha() or image_group_id[3].isalpha()):
+            #     image_group_id = image_group_id[1:]
 
             hash_two = get_hash(work_id)
 
