@@ -37,7 +37,7 @@ def check_spans_against_yaml(spans, yaml_data, base_index=0):
                     if start <= adjusted_span < end:
                         if annotation['reference'] not in references[char]:
                             references[char].append(annotation['reference'])
-    return references
+    return references 
 
 def extract_work_id(meta_data):
     if 'source_metadata' in meta_data and 'id' in meta_data['source_metadata']:
@@ -47,16 +47,16 @@ def extract_work_id(meta_data):
         return source_id.split(':')[-1]
     return None
 
-def load_existing_mappings(filename):
-    existing_mappings = set()
-    with open(filename, 'r', encoding='utf-8') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            key = (row['char'], row['txt_file'], row['image_group_id'], row['work_id'], json.dumps(row['reference'], ensure_ascii=False))
-            existing_mappings.add(key)
-    return existing_mappings
+# def load_existing_mappings(filename):
+#     existing_mappings = set()
+#     with open(filename, 'r', encoding='utf-8') as file:
+#         reader = csv.DictReader(file)
+#         for row in reader:
+#             key = (row['char'], row['txt_file'], row['image_group_id'], row['work_id'], json.dumps(row['reference'], ensure_ascii=False))
+#             existing_mappings.add(key)
+#     return existing_mappings
 
-def find_char_mapping(base_dirs, layers_dirs, characters, meta_files, existing_mappings, max_occurrences=9):
+def find_char_mapping(base_dirs, layers_dirs, characters, meta_files, existing_mappings, max_occurrences=10):
     char_mapping = []
     global_counts = {char: 0 for char in characters}
 
@@ -138,9 +138,9 @@ def save_to_csv(data, filename):
             writer.writerow([char, txt_file, image_group_id, work_id, reference])
 
 def main():
-    opf_base_dir = Path('../../data/source_ocr_opf')
-    missing_glyph_txt = Path('../../data/test_get_glyph_list/txt_file/derge_missing_glyphs.txt')
-    csv_span_file = Path('../../data/mapping_csv/derge_variant_opf_ocr_char_mapping.csv')
+    opf_base_dir = Path('../../data/opf/pecing')
+    missing_glyph_txt = Path('../../data/pecing_missing_glyphs.txt')
+    csv_span_file = Path('../../data/mapping_csv/pecing/pecing_char_mapping.csv')
     existing_mapping_file = Path('../../data/mapping_csv/derge_opf_char_mapping.csv')
 
     characters = read_char(missing_glyph_txt)
@@ -151,7 +151,7 @@ def main():
     layers_dirs = [d / 'layers' for d in opf_dirs]
     meta_files = [d / 'meta.yml' for d in opf_dirs]
 
-    existing_mappings = load_existing_mappings(existing_mapping_file)
+    existing_mappings = set () #change to mappinig path when there is an existing mapping
     char_mapping_data = find_char_mapping(base_dirs, layers_dirs, characters, meta_files, existing_mappings)
 
     save_to_csv(char_mapping_data, csv_span_file)
