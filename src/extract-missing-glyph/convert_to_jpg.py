@@ -24,7 +24,7 @@ def convert_images_to_jpg(input_dir, output_dir):
                 print(f"Converted {file_path} to {output_file_path}")
 
 if __name__ == "__main__":
-    input_dir = "../../data/derge_opf_variant_images"  
-    output_dir = "../../data/opf_variant_source_img"  
+    input_dir = "../../data/source_images/pecing/pecing_opf"  
+    output_dir = "../../data/source_images/pecing/converted_pecing_images"  
 
     convert_images_to_jpg(input_dir, output_dir)

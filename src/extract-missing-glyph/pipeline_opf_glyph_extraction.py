@@ -138,10 +138,10 @@ def save_to_csv(data, filename):
             writer.writerow([char, txt_file, image_group_id, work_id, reference])
 
 def main():
-    opf_base_dir = Path('../../data/opf/pecing')
-    missing_glyph_txt = Path('../../data/pecing_missing_glyphs.txt')
-    csv_span_file = Path('../../data/mapping_csv/pecing/pecing_char_mapping.csv')
-    existing_mapping_file = Path('../../data/mapping_csv/derge_opf_char_mapping.csv')
+    opf_base_dir = Path('data/opf/derge/source_transcribed_opf')
+    missing_glyph_txt = Path('data/b2_derge_missing_glyphs.txt')
+    output_csv_span_file = Path('data/mapping_csv/derge/b2_derge_char_mapping.csv')
+    # existing_mapping_file = Path('../../data/mapping_csv/derge_opf_char_mapping.csv')
 
     characters = read_char(missing_glyph_txt)
 
@@ -154,7 +154,7 @@ def main():
     existing_mappings = set () #change to mappinig path when there is an existing mapping
     char_mapping_data = find_char_mapping(base_dirs, layers_dirs, characters, meta_files, existing_mappings)
 
-    save_to_csv(char_mapping_data, csv_span_file)
+    save_to_csv(char_mapping_data, output_csv_span_file)
 
 if __name__ == "__main__":
     main()

@@ -11,7 +11,7 @@ def upload_to_s3_and_return_data(local_path, final_jsonl):
     for image_path in files_to_upload:
         if image_path.is_file():
             relative_path = image_path.relative_to(local_directory)
-            s3_key = f"glyph/derge_opf_variant/{relative_path}".replace("\\", "/")
+            s3_key = f"glyph/pecing_batch_2/{relative_path}".replace("\\", "/")
 
             try:
                 with open(image_path, "rb") as image_file:
@@ -44,11 +44,11 @@ def write_jsonl(final_jsonl, jsonl_base_path):
     print(f"jsonl created at {jsonl_path_2}")
 
 def main():
-    local_path = Path("/Users/tenkal/monlam/image-cropping-prodigy/data/cropped_images/variant_cropped_images")
+    local_path = Path("data/cropped_images/pecing")
     final_jsonl = []
 
     final_jsonl = upload_to_s3_and_return_data(local_path, final_jsonl)
-    jsonl_base_path = "../../data/prodigy_jsonl/derge_opf_glyphs"
+    jsonl_base_path = "data/prodigy_jsonl/pecing"
     write_jsonl(final_jsonl, jsonl_base_path)
 
 if __name__ == "__main__":
